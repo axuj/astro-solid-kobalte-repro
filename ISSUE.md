@@ -42,8 +42,8 @@ Quick repro (StackBlitz, no patch involved — crashes as-is):
 3. Create `src/components/KobalteDemo.tsx` and edit `src/pages/index.astro` as shown below
 4. Run `npm run build` -> fails with `Client-only API called on the server side`
 
-Full repro with a toggleable fix (GitHub): https://github.com/axuj/astro-solid-kobalte-repro
-(`npm run repro:broken` reproduces the crash, `npm run repro:fixed` applies the workaround; see below)
+Full repro with a verified fix (GitHub): https://github.com/axuj/astro-solid-kobalte-repro
+The repo is in the broken (unpatched) state by default: `npm install && npm run build` crashes as-is. `npm run repro:fixed` applies the verified workaround (see below).
 
 Steps:
 
@@ -115,14 +115,14 @@ During the static build, the `prerender` environment does **not** bundle Solid-e
 
 ## Workaround (verified, toggle with two commands)
 
-This repo ships a patch at `patches/@astrojs+solid-js+7.0.1.patch`, applied by [patch-package](https://www.npmjs.com/package/patch-package) via the `postinstall` hook. Switch between the two states with:
+The repo defaults to the broken (patch-free) state — `npm install && npm run build` crashes as-is. A verified patch lives at `patches-off/@astrojs+solid-js+7.0.1.patch` (kept out of `patches/` so `patch-package` doesn't apply it), enabled with:
 
 ```
-npm run repro:broken   # toggles the patch off -> build crashes with Client-only API error
-npm run repro:fixed    # toggles the patch on  -> build succeeds
+npm run repro:fixed    # restores the patch to patches/, reinstalls, builds -> succeeds
+npm run repro:broken   # moves the patch back to patches-off/, reinstalls, builds -> crashes
 ```
 
-Each command moves the patch file out of / back into `patches/`, wipes `node_modules` for a clean reinstall (the `postinstall` hook applies or skips the patch), then runs `astro build`. If you open this repo directly in StackBlitz, run `npm run repro:broken` first to see the crash. `vitefu` stays in `package.json` permanently (harmless without the patch, required by it — npm's flat `node_modules` makes it resolvable from inside `@astrojs/solid-js`).
+Each command moves the patch file between `patches/` and `patches-off/`, wipes `node_modules` for a clean reinstall (the `postinstall` `patch-package` hook applies or skips it), then runs `astro build`. `vitefu` stays in `package.json` permanently (harmless without the patch, required by it — npm's flat `node_modules` makes it resolvable from inside `@astrojs/solid-js`).
 
 The patch ports the svelte approach into `@astrojs/solid-js`'s `dist/index.js`:
 
