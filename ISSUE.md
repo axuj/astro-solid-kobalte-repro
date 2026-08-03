@@ -22,7 +22,7 @@ When a Solid component rendered with `client:load` imports `@kobalte/core` (or a
 
 ## Reproduction
 
-Repository: `<PENDING: push this folder to GitHub and paste the URL>`
+Repository: https://github.com/axuj/astro-solid-kobalte-repro
 
 Steps:
 
