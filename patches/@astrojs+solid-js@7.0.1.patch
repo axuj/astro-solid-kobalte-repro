@@ -1,0 +1,94 @@
+diff --git a/dist/index.js b/dist/index.js
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1,5 +1,17 @@
+ import solid, {} from "vite-plugin-solid";
++import { crawlFrameworkPkgs } from "vitefu";
++import { fileURLToPath } from "node:url";
+ import { getContainerRenderer as getContainerRendererImpl } from "./container-renderer.js";
++function containsSolidField(fields) {
++  const keys = Object.keys(fields);
++  for (let i = 0; i < keys.length; i++) {
++    const key = keys[i];
++    if (key === "solid") return true;
++    if (typeof fields[key] === "object" && fields[key] != null && containsSolidField(fields[key]))
++      return true;
++  }
++  return false;
++}
+ async function getDevtoolsPlugin(logger, retrieve) {
+   if (!retrieve) {
+     return null;
+@@ -13,10 +25,10 @@
+     return null;
+   }
+ }
+-function getViteConfiguration({ include, exclude }, devtoolsPlugin) {
++function getViteConfiguration({ include, exclude }, devtoolsPlugin, solidNoExternal) {
+   const plugins = [
+     solid({ include, exclude, ssr: true }),
+-    configEnvironmentPlugin()
++    configEnvironmentPlugin(solidNoExternal)
+   ];
+   if (devtoolsPlugin) {
+     plugins.push(devtoolsPlugin({ autoname: true }));
+@@ -34,6 +46,7 @@
+     name: "@astrojs/solid-js",
+     hooks: {
+       "astro:config:setup": async ({
++        config,
+         command,
+         addRenderer,
+         updateConfig,
+@@ -45,8 +58,27 @@
+           !!options.devtools && command === "dev"
+         );
+         addRenderer(getContainerRendererImpl());
++        // Solid packages with a `solid` export condition ship source files for
++        // Vite to transform, plus a prebuilt browser bundle under the `default`
++        // condition. When such a package is externalized during SSR, Node
++        // resolves the `default` bundle and crashes on its top-level
++        // client-only API calls (`template()`). vite-plugin-solid only
++        // `noExternal`s these packages for an environment literally named
++        // `ssr`, but Astro renders pages in its `prerender`/`astro`
++        // environments, so we crawl for those packages ourselves and
++        // `noExternal` them across all server environments.
++        //
++        // See related logic in @astrojs/svelte:
++        // https://github.com/withastro/astro/blob/main/packages/integrations/svelte/src/index.ts
++        const solidPackages = await crawlFrameworkPkgs({
++          root: fileURLToPath(config.root),
++          isBuild: false,
++          isFrameworkPkgByJson(pkgJson) {
++            return containsSolidField(pkgJson.exports || {});
++          }
++        });
+         updateConfig({
+-          vite: getViteConfiguration(options, devtoolsPlugin)
++          vite: getViteConfiguration(options, devtoolsPlugin, solidPackages.ssr.noExternal)
+         });
+         if (devtoolsPlugin) {
+           injectScript("page", 'import "solid-devtools";');
+@@ -66,16 +98,20 @@
+     }
+   };
+ }
+-function configEnvironmentPlugin() {
++function configEnvironmentPlugin(solidNoExternal) {
+   return {
+     name: "@astrojs/solid:config-environment",
+     configEnvironment(environmentName) {
+-      return {
++      const result = {
+         optimizeDeps: {
+           include: environmentName === "client" ? ["@astrojs/solid-js/client.js"] : [],
+           exclude: ["@astrojs/solid-js/server.js"]
+         }
+       };
++      if (environmentName !== "client") {
++        result.resolve = { noExternal: solidNoExternal };
++      }
++      return result;
+     }
+   };
+ }

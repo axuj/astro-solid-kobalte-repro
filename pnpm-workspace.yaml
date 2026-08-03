@@ -1,0 +1,4 @@
+allowBuilds:
+  esbuild: true
+patchedDependencies:
+  '@astrojs/solid-js@7.0.1': patches/@astrojs+solid-js@7.0.1.patch

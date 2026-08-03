@@ -1,0 +1,21 @@
+{
+  "name": "astro-solid-kobalte-repro",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "repro:broken": "node scripts/toggle-patch.mjs off && pnpm install && pnpm build",
+    "repro:fixed": "node scripts/toggle-patch.mjs on && pnpm install && pnpm build"
+  },
+  "dependencies": {
+    "@astrojs/solid-js": "^7.0.1",
+    "@kobalte/core": "^0.13.12",
+    "astro": "^7.1.5",
+    "solid-js": "^1.9.5",
+    "vitefu": "^1.1.3"
+  }
+}
