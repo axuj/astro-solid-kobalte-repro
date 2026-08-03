@@ -6,7 +6,7 @@ When a Solid component rendered with `client:load` imports `@kobalte/core` (or a
 
 ```
 [ERROR] Caught error rendering /: Error: Client-only API called on the server side. Run client-only code in onMount, or conditionally run client-only component with <Show>.
-    at notSup (node_modules/.pnpm/solid-js@1.9.14/node_modules/solid-js/web/dist/server.js:760:9)
+    at notSup (node_modules/solid-js/web/dist/server.js:760:9)
 ```
 
 `astro dev` works fine; only `astro build` (prerender environment) crashes.
@@ -17,16 +17,17 @@ When a Solid component rendered with `client:load` imports `@kobalte/core` (or a
 - @astrojs/solid-js: 7.0.1
 - @kobalte/core: 0.13.12
 - solid-js: 1.9.14
-- pnpm: 11.17.0
+- npm: 11.6.2
 - OS: Windows
 
 ## Astro Info
 
 ```
 Astro                    v7.1.6
+Vite                     v8.2.0
 Node                     v24.11.1
 System                   Windows (x64)
-Package Manager          pnpm
+Package Manager          npm
 Output                   static
 Adapter                  none
 Integrations             @astrojs/solid-js
@@ -42,12 +43,12 @@ Quick repro (StackBlitz, no patch involved — crashes as-is):
 4. Run `npm run build` -> fails with `Client-only API called on the server side`
 
 Full repro with a toggleable fix (GitHub): https://github.com/axuj/astro-solid-kobalte-repro
-(`pnpm repro:broken` reproduces the crash, `pnpm repro:fixed` applies the workaround; see below)
+(`npm run repro:broken` reproduces the crash, `npm run repro:fixed` applies the workaround; see below)
 
 Steps:
 
-1. `pnpm install`
-2. `pnpm build`
+1. `npm install`
+2. `npm run build`
 
 Minimal code:
 
@@ -114,14 +115,14 @@ During the static build, the `prerender` environment does **not** bundle Solid-e
 
 ## Workaround (verified, toggle with two commands)
 
-This repo ships a patch at `patches/@astrojs+solid-js@7.0.1.patch`, applied via `patchedDependencies` in `pnpm-workspace.yaml`. Switch between the two states with:
+This repo ships a patch at `patches/@astrojs+solid-js+7.0.1.patch`, applied by [patch-package](https://www.npmjs.com/package/patch-package) via the `postinstall` hook. Switch between the two states with:
 
 ```
-pnpm repro:broken   # toggles the patch off -> build crashes with Client-only API error
-pnpm repro:fixed    # toggles the patch on  -> build succeeds
+npm run repro:broken   # toggles the patch off -> build crashes with Client-only API error
+npm run repro:fixed    # toggles the patch on  -> build succeeds
 ```
 
-Each command rewrites `pnpm-workspace.yaml`, wipes `node_modules` for a clean reinstall, then runs `astro build`. `vitefu` stays in `package.json` permanently (it is harmless without the patch and required by it).
+Each command moves the patch file out of / back into `patches/`, wipes `node_modules` for a clean reinstall (the `postinstall` hook applies or skips the patch), then runs `astro build`. If you open this repo directly in StackBlitz, run `npm run repro:broken` first to see the crash. `vitefu` stays in `package.json` permanently (harmless without the patch, required by it — npm's flat `node_modules` makes it resolvable from inside `@astrojs/solid-js`).
 
 The patch ports the svelte approach into `@astrojs/solid-js`'s `dist/index.js`:
 

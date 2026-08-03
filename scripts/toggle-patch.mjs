@@ -1,13 +1,7 @@
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, renameSync, rmSync } from 'node:fs'
 
-const FIXED = `allowBuilds:
-  esbuild: true
-patchedDependencies:
-  '@astrojs/solid-js@7.0.1': patches/@astrojs+solid-js@7.0.1.patch
-`
-const BROKEN = `allowBuilds:
-  esbuild: true
-`
+const PATCH_FILE = 'patches/@astrojs+solid-js+7.0.1.patch'
+const DISABLED = '.astro-solid-patch.disabled'
 
 const mode = process.argv[2]
 if (mode !== 'on' && mode !== 'off') {
@@ -15,10 +9,20 @@ if (mode !== 'on' && mode !== 'off') {
   process.exit(1)
 }
 
-const before = readFileSync('pnpm-workspace.yaml', 'utf8')
-const after = mode === 'on' ? FIXED : BROKEN
+if (mode === 'on') {
+  if (existsSync(DISABLED)) {
+    renameSync(DISABLED, PATCH_FILE)
+    console.log('patch on (patch file restored)')
+  } else {
+    console.log('patch on (already enabled)')
+  }
+} else {
+  if (existsSync(PATCH_FILE)) {
+    renameSync(PATCH_FILE, DISABLED)
+    console.log('patch off (patch file moved out of patches/)')
+  } else {
+    console.log('patch off (already disabled)')
+  }
+}
 
-writeFileSync('pnpm-workspace.yaml', after)
 rmSync('node_modules', { recursive: true, force: true })
-
-console.log(`patch ${mode} (pnpm-workspace.yaml: ${before.includes('patchedDependencies') ? 'with' : 'without'} patchedDependencies -> ${after.includes('patchedDependencies') ? 'with' : 'without'})`)
