@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { dirname } from 'node:path'
 
 const PATCH_FILE = 'patches/@astrojs+solid-js+7.0.1.patch'
 const OFF_DIR = 'patches-off/@astrojs+solid-js+7.0.1.patch'
@@ -9,17 +10,25 @@ if (mode !== 'on' && mode !== 'off') {
   process.exit(1)
 }
 
+const move = (src, dest) => {
+  mkdirSync(dirname(dest), { recursive: true })
+  copyFileSync(src, dest)
+  rmSync(src)
+}
+
 if (mode === 'on') {
   if (existsSync(OFF_DIR)) {
-    renameSync(OFF_DIR, PATCH_FILE)
+    move(OFF_DIR, PATCH_FILE)
     console.log('patch on (restored from patches-off/)')
-  } else {
+  } else if (existsSync(PATCH_FILE)) {
     console.log('patch on (already enabled)')
+  } else {
+    console.error('patch on failed: patch file found in neither patches/ nor patches-off/')
+    process.exit(1)
   }
 } else {
   if (existsSync(PATCH_FILE)) {
-    mkdirSync('patches-off', { recursive: true })
-    renameSync(PATCH_FILE, OFF_DIR)
+    move(PATCH_FILE, OFF_DIR)
     console.log('patch off (moved to patches-off/)')
   } else {
     console.log('patch off (already disabled)')
