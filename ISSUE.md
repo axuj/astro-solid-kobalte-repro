@@ -20,9 +20,29 @@ When a Solid component rendered with `client:load` imports `@kobalte/core` (or a
 - pnpm: 11.17.0
 - OS: Windows
 
+## Astro Info
+
+```
+Astro                    v7.1.6
+Node                     v24.11.1
+System                   Windows (x64)
+Package Manager          pnpm
+Output                   static
+Adapter                  none
+Integrations             @astrojs/solid-js
+```
+
 ## Reproduction
 
-Repository: https://github.com/axuj/astro-solid-kobalte-repro
+Quick repro (StackBlitz, no patch involved — crashes as-is):
+
+1. Open https://astro.new/repro
+2. In the terminal: `npm install @kobalte/core`
+3. Create `src/components/KobalteDemo.tsx` and edit `src/pages/index.astro` as shown below
+4. Run `npm run build` -> fails with `Client-only API called on the server side`
+
+Full repro with a toggleable fix (GitHub): https://github.com/axuj/astro-solid-kobalte-repro
+(`pnpm repro:broken` reproduces the crash, `pnpm repro:fixed` applies the workaround; see below)
 
 Steps:
 
